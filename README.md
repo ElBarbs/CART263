@@ -1,3 +1,5 @@
-# Template p5 project
+# CART263-W-23
 
-This is the README file for the entire project. For more official projects you should write information here about the nature of the project, your name, any special explanations of how the project works, etc.
+## CART 263: Creative Computation 2 – Winter 2023
+
+This repository contains all the projects created for the course.
