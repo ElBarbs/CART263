@@ -1,5 +1,5 @@
 /**
-Exercice 1: Getting Back into Code.
+Exercise 1: Getting Back into Code.
 Louis Barbier.
 
 A re-creation of the game Pong, where 2 players bounce a ball back and forth horizontally to score points.
