@@ -256,7 +256,7 @@ function draw() {
 
 function keyPressed() {
   // If the R key is pressed, restart the game.
-  if (keyCode === 82) {
+  if (keyCode == 82) {
     // Reset the scores.
     for (let player of players) {
       player.score = 0;
