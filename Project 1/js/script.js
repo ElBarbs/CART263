@@ -149,6 +149,19 @@ class Particle {
     // If the particle hits the ground, bounce it.
     if (this.position.y >= CANVAS_HEIGHT) {
       this.velocity.y *= -0.225;
+      this.velocity = createVector(random(-0.1, 0.1), this.velocity.y);
+      this.length *= 0.25;
+    }
+
+    if (
+      this.position.y + this.length >= mouseY &&
+      this.position.x >= mouseX &&
+      this.position.x <= mouseX + 12
+    ) {
+      this.velocity = createVector(
+        map(mouseX - pmouseX, -10, 10, 0, 1),
+        -0.225
+      );
       this.length *= 0.25;
     }
 
