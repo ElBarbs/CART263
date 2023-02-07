@@ -21,21 +21,21 @@ const BKG_COLOR = [135, 206, 235];
  * The initial chance of the screen flashing white.
  * This is multiplied by the number of milliseconds that have passed.
  */
-const INTIAL_FLASH_CHANCE = 0.0000005;
+const INTIAL_FLASH_CHANCE = 5e-7;
 
 /**
- * The initial chance of a particle being added.
+ * The initial chance of a rain drop being added.
  * This is multiplied by the number of milliseconds that have passed.
  */
-const INITIAL_PARTICLE_CHANCE = 0.00005;
+const INITIAL_PARTICLE_CHANCE = 5e-5;
 
 /**
  * Defines the speed at which the background gets darker.
  */
 const BKG_COLOR_CHANGE_SPEED = 0.01;
 
-/** The particle system. */
-let particleSystem;
+/** The cloud that will produce the rain. */
+let cloud;
 
 /**
  * The background p5 Color object.
@@ -50,11 +50,14 @@ function setup() {
   // Create the canvas.
   createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
 
-  // Initialize the particle system.
-  particleSystem = new ParticleSystem();
+  // Initialize the rain drop system.
+  cloud = new Cloud();
 
   // Initialize the background color object.
   bkgColorObject = color(BKG_COLOR);
+
+  // Set the frame rate.
+  frameRate(120);
 }
 
 /**
@@ -67,29 +70,38 @@ function draw() {
   // Reset the background.
   background(bkgColorObject);
 
+  // Get the number of milliseconds that have passed.
+  // Make sure that the number of milliseconds is not greater than 20000.
+  // This is so that the flash chance and particle chance do not get too high.
+  let timePassed = millis() > 20000 ? 20000 : millis();
+
   // Flash the screen white.
-  if (random() < INTIAL_FLASH_CHANCE * millis()) {
+  if (random() < INTIAL_FLASH_CHANCE * timePassed) {
     flashScreen();
   }
 
-  // Add a particle.
-  if (random() < INITIAL_PARTICLE_CHANCE * millis()) {
-    particleSystem.addParticle();
+  // Add a rain drop.
+  if (random() < INITIAL_PARTICLE_CHANCE * timePassed) {
+    cloud.addRainDrop();
   }
 
-  // Run the particle system.
-  particleSystem.run();
+  // Animate the rain drops.
+  cloud.rain();
 }
 
+/**
+ * Darken the background.
+ */
 function darkenBackground() {
   // Darken the background if it is not already black.
   if (bkgColorObject.toString() != "rgba(0,0,0,1)") {
-    // Calculate the new color.
+    // Calculate the new value of the red, green, and blue components.
     let newRed = BKG_COLOR[0] - BKG_COLOR_CHANGE_SPEED * millis();
     let newGreen = BKG_COLOR[1] - BKG_COLOR_CHANGE_SPEED * millis();
     let newBlue = BKG_COLOR[2] - BKG_COLOR_CHANGE_SPEED * millis();
 
-    // Make sure the color is not negative and set the color.
+    // Set the new values of the red, green, and blue components.
+    // Make sure that the values are not negative.
     bkgColorObject.setRed(newRed < 0 ? 0 : newRed);
     bkgColorObject.setGreen(newGreen < 0 ? 0 : newGreen);
     bkgColorObject.setBlue(newBlue < 0 ? 0 : newBlue);
@@ -113,70 +125,83 @@ function flashScreen() {
 }
 
 /**
- * Particle class.
+ * This class represents a rain drop.
  */
-class Particle {
+class RainDrop {
   constructor() {
-    // The position of the particle.
+    // The position of the rain drop.
     this.position = createVector(random(0, width), -20);
 
-    // The velocity and acceleration of the particle.
-    this.velocity = createVector(0, random(-1, 0));
+    // The velocity and acceleration of the rain drop.
+    this.velocity = createVector(0, random(-2, 2));
     this.acceleration = createVector(0, 0.05);
 
-    // The lifespan of the particle.
+    // The lifespan of the rain drop.
     this.lifespan = 475;
 
-    // The length of the particle.
+    // The length of the rain drop.
     this.length = random(5, 15);
 
-    // The stroke weight of the particle.
+    // The thickness of the rain drop.
     this.strokeWeight = random(1, 2);
+
+    this.droplets = [];
   }
 
   /**
-   * Run the particle.
+   * Move the rain drop.
    */
-  run() {
+  move() {
     this.update();
     this.display();
   }
 
   /**
    * Update position and velocity.
+   * Decrease the lifespan.
+   * Split the rain drop into rain droplets if necessary.
    */
   update() {
-    // If the particle hits the ground, bounce it.
-    if (this.position.y >= CANVAS_HEIGHT) {
-      this.velocity.y *= -0.225;
-      this.velocity = createVector(random(-0.1, 0.1), this.velocity.y);
-      this.length *= 0.25;
+    if (this.droplets.length > 0) {
+      for (let i = 0; i < this.droplets.length; i++) {
+        this.droplets[i].move();
+        if (this.droplets[i].lifespan <= 0) {
+          this.droplets.splice(i, 1);
+        }
+      }
+    } else {
+      // If the rain drop hits the ground, bounce it.
+      // Give it a random x velocity.
+      if (this.position.y >= CANVAS_HEIGHT) {
+        this.lifespan = 0;
+        this.split(createVector(random(-0.1, 0.1), this.velocity.y * -0.225));
+      }
+
+      // If the rain drop hits the mouse, bounce it.
+      // Change its x velocity based on the mouse's x velocity.
+      if (
+        this.position.y + this.length >= mouseY &&
+        this.position.x >= mouseX &&
+        this.position.x <= mouseX + 12
+      ) {
+        this.lifespan = 0;
+        this.split(createVector(map(mouseX - pmouseX, -10, 10, 0, 1), -0.225));
+      }
+
+      // Update position and velocity.
+      this.position.add(this.velocity);
+      this.velocity.add(this.acceleration);
+
+      // Decrease the lifespan.
+      this.lifespan -= 2;
     }
-
-    if (
-      this.position.y + this.length >= mouseY &&
-      this.position.x >= mouseX &&
-      this.position.x <= mouseX + 12
-    ) {
-      this.velocity = createVector(
-        map(mouseX - pmouseX, -10, 10, 0, 1),
-        -0.225
-      );
-      this.length *= 0.25;
-    }
-
-    // Update position and velocity.
-    this.position.add(this.velocity);
-    this.velocity.add(this.acceleration);
-
-    // Decrease the lifespan.
-    this.lifespan -= 2;
   }
 
   /**
-   * Display the particle.
+   * Display the rain drop.
    */
   display() {
+    noFill();
     strokeWeight(this.strokeWeight);
     stroke(30, this.lifespan);
     line(
@@ -188,42 +213,117 @@ class Particle {
   }
 
   /**
-   * Is the particle still alive?
+   * Split the rain drop into rain droplets.
+   * @param {p5.Vector} velocity The velocity of the rain droplets.
+   */
+  split(velocity) {
+    for (let i = 0; i < random(1, 3); i++) {
+      let rainDropletPosition = this.position.copy();
+      rainDropletPosition.add(
+        createVector(random(-1, 1), random(-1, 1) * this.length)
+      );
+      this.droplets.push(
+        new RainDroplet(rainDropletPosition, velocity, this.acceleration)
+      );
+    }
+  }
+
+  /**
+   * Is the rain drop dead?
    */
   isDead() {
-    return this.lifespan < 0;
+    return this.lifespan <= 0 && this.droplets.length <= 0;
   }
 }
 
 /**
- * Particle system class.
+ * This class represents a rain droplet.
+ * A rain droplet is created when a rain drop hits the ground or the cursor.
  */
-class ParticleSystem {
+class RainDroplet {
+  constructor(position, velocity, acceleration) {
+    // The position of the rain droplet.
+    this.position = position;
+
+    // The velocity and acceleration of the rain droplet.
+    this.velocity = velocity;
+    this.acceleration = acceleration;
+
+    // The lifespan of the rain droplet.
+    this.lifespan = 100;
+
+    // The size of the rain droplet.
+    this.diameter = random(2, 3);
+  }
+
+  /**
+   * Move the rain droplet.
+   */
+  move() {
+    this.update();
+    this.display();
+  }
+
+  /**
+   * Update position and velocity.
+   * Decrease the lifespan.
+   */
+  update() {
+    // Update position and velocity.
+    this.position.add(this.velocity);
+    this.velocity.add(this.acceleration);
+
+    // Decrease the lifespan.
+    this.lifespan -= 2;
+  }
+
+  /**
+   * Display the rain droplet.
+   */
+  display() {
+    noStroke();
+    fill(30, this.lifespan);
+    ellipse(this.position.x, this.position.y, this.diameter);
+  }
+
+  /**
+   * Is the rain droplet dead?
+   */
+  isDead() {
+    return this.lifespan <= 0;
+  }
+}
+
+/**
+ * This class represents a cloud that produces rain.
+ * It contains all of the rain drops.
+ */
+class Cloud {
   constructor() {
-    this.particles = [];
+    this.raindrops = [];
   }
 
   /**
-   * Add a particle to the system.
+   * Add a rain drop to the cloud.
    */
-  addParticle() {
-    this.particles.push(new Particle());
+  addRainDrop() {
+    this.raindrops.push(new RainDrop());
   }
 
   /**
-   * Move and display all particles.
+   * Animate the rain drops.
    */
-  run() {
-    for (let i = 0; i < this.particles.length; i++) {
-      // Get the particle.
-      let currentParticle = this.particles[i];
+  rain() {
+    for (let i = 0; i < this.raindrops.length; i++) {
+      // Get a reference to the current rain drop.
+      let currentRaindrop = this.raindrops[i];
 
-      // Run the particle.
-      currentParticle.run();
+      // Move the rain drop.
+      currentRaindrop.move();
 
-      // Remove the particle if it is dead.
-      if (currentParticle.isDead()) {
-        this.particles.splice(i, 1);
+      // Remove the rain drop if it is dead.
+      if (currentRaindrop.isDead()) {
+        this.raindrops.splice(i, 1);
       }
     }
   }
