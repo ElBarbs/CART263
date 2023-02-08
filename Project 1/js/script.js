@@ -43,6 +43,9 @@ let cloud;
  */
 let bkgColorObject;
 
+/** The background sound. */
+let backgroundSound;
+
 /**
  * Setup the canvas.
  */
@@ -56,6 +59,10 @@ function setup() {
   // Initialize the background color object.
   bkgColorObject = color(BKG_COLOR);
 
+  // Load the background music.
+  soundFormats("wav");
+  backgroundSound = loadSound("assets/sounds/thunderstorm.wav");
+
   // Set the frame rate.
   frameRate(120);
 }
@@ -64,6 +71,11 @@ function setup() {
  * Draw the canvas.
  */
 function draw() {
+  // Play the background sound if it is loaded and not already playing.
+  if (backgroundSound.isLoaded() && !backgroundSound.isPlaying()) {
+    backgroundSound.loop();
+  }
+
   // Darken the background.
   darkenBackground();
 
@@ -73,7 +85,7 @@ function draw() {
   // Get the number of milliseconds that have passed.
   // Make sure that the number of milliseconds is not greater than 20000.
   // This is so that the flash chance and particle chance do not get too high.
-  let timePassed = millis() > 20000 ? 20000 : millis();
+  let timePassed = millis() > 30000 ? 30000 : millis();
 
   // Flash the screen white.
   if (random() < INTIAL_FLASH_CHANCE * timePassed) {
@@ -87,6 +99,21 @@ function draw() {
 
   // Animate the rain drops.
   cloud.rain();
+}
+
+/**
+ * Starts the background sound when the mouse is pressed.
+ * This is necessary because the browser will not play audio unless it is
+ * triggered by a user action.
+ */
+function mousePressed() {
+  // Ensure audio is enabled.
+  userStartAudio();
+
+  // Loop the background sound.
+  if (backgroundSound.isLoaded() && !backgroundSound.isPlaying()) {
+    backgroundSound.loop();
+  }
 }
 
 /**
