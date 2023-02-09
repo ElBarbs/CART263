@@ -309,7 +309,7 @@ class RainDroplet {
    */
   display() {
     noStroke();
-    fill(30, this.lifespan);
+    fill(225, this.lifespan);
     ellipse(this.position.x, this.position.y, this.diameter);
   }
 
