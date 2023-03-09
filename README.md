@@ -11,3 +11,6 @@ A re-creation of the game Pong, where 2 players bounce a ball back and forth hor
 ### Project 1: Particles with Personalities - Getting Caught in a Thunderstorm
 
 A simulation of a thunderstorm using OOP and particles.
+
+### Projet 2: Data Visualization - Canadian Housing Survey 2021
+
