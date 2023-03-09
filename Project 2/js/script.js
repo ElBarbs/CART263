@@ -121,8 +121,6 @@ function setup() {
   // Sort the provinces by size and update their position.
   provinces.sort((a, b) => a.size - b.size);
   updateProvincesPosition();
-
-  console.log(provinces);
 }
 
 /**
