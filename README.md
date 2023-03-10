@@ -8,9 +8,11 @@ This repository contains all the projects created for the course.
 
 A re-creation of the game Pong, where 2 players bounce a ball back and forth horizontally to score points.
 
-### Project 1: Particles with Personalities - Getting Caught in a Thunderstorm
+### Project 1: Particles with Personalities
+#### Getting Caught in a Thunderstorm
 
 A simulation of a thunderstorm using OOP and particles.
 
-### Projet 2: Data Visualization - Canadian Housing Survey 2021
+### Projet 2: Data Visualization
+#### Sad-tistics Canada - Using data from Canadian Housing Survey of 2021
 
