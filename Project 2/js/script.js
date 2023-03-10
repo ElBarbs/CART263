@@ -1,6 +1,7 @@
 /**
  * Project 2: Data Visualization.
- * Using the Canadian Housing Survey 2021.
+ * Sad-tistics Canada.
+ * Using data from Canadian Housing Survey of 2021.
  * Louis Barbier.
  */
 
@@ -20,7 +21,7 @@ const CANVAS_HEIGHT = 600;
  * GH_10: General health - self-assessed mental health.
  * PNSC_15: Feeling of safety - walking alone in neighbourhood.
  * PEHA_05B: Economic hardship - took on debts or sold assets.
- * */
+ */
 const COLUMN_NAMES = [
   "PPROV",
   "PRSPGNDR",
@@ -136,8 +137,25 @@ function draw() {
     // Write title.
     fill(235);
     noStroke();
-    textSize(30);
-    text("Sad-tistics Canada", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 4);
+    textSize(25);
+    text("Sad-tistics Canada", CANVAS_WIDTH * 0.5, CANVAS_HEIGHT * 0.25);
+    textSize(20);
+    text(
+      "Using data from the Canadian Housing Survey of 2021",
+      CANVAS_WIDTH * 0.5,
+      CANVAS_HEIGHT * 0.75
+    );
+
+    // Draw borders.
+    noFill();
+    stroke(235);
+    strokeWeight(1);
+    rect(
+      CANVAS_WIDTH / 2,
+      CANVAS_HEIGHT / 2,
+      CANVAS_WIDTH - 25,
+      CANVAS_HEIGHT - 25
+    );
 
     // Draw the data.
     for (let i = 0; i < provinces.length; i++) {
@@ -164,6 +182,7 @@ function draw() {
     noStroke();
     textSize(15);
     text("Press SPACE to go back", CANVAS_WIDTH / 2, 50);
+    text("Press LEFT or RIGHT to change sad-tistic", CANVAS_WIDTH / 2, 75);
 
     // Draw the shapes.
     for (let i = 0; i < displayedShapes.length; i++) {
@@ -173,9 +192,10 @@ function draw() {
     // Draw left chevron.
     image(logoLeftChevron, 300, CANVAS_HEIGHT - 70, 50, 50);
 
-    // Write the property.
+    // Get the property value.
     let propertyValue = provinces[selectedProvince].selectedPropertyValue;
 
+    // Write the property value.
     fill(20);
     noStroke();
     textSize(30);
@@ -195,7 +215,10 @@ function draw() {
 function mousePressed() {
   if (selectedProvince == undefined) {
     for (let i = 0; i < provinces.length; i++) {
+      // Get the current province.
       let currentProvince = provinces[i];
+
+      // If the cursor is over the province, select it.
       if (isCursorOverProvince(currentProvince)) {
         backgroundColor = color(currentProvince.color);
         selectedProvince = i;
@@ -211,8 +234,9 @@ function keyPressed() {
   // If the SPACE key is pressed, reset the canvas.
   if (keyCode === 32) {
     reset();
-  } else if (keyCode == LEFT_ARROW || keyCode == RIGHT_ARROW) {
-    // Change the selected property.
+  }
+  // If the LEFT or RIGHT arrow keys are pressed, change the selected property.
+  else if (keyCode == LEFT_ARROW || keyCode == RIGHT_ARROW) {
     let index = Object.keys(PROPERTIES).indexOf(selectedProperty);
     if (keyCode == LEFT_ARROW) {
       if (index == 0) {
@@ -228,40 +252,55 @@ function keyPressed() {
       }
     }
     selectedProperty = Object.keys(PROPERTIES)[index];
+
+    // Update the shapes.
     createShapes();
   }
 }
 
 function createShapes() {
+  // Get the current province.
   let currentProvince = provinces[selectedProvince];
 
   // Check if the number of shapes to display is different from the number of shapes currently displayed.
   displayedShapes.length = 0;
 
+  // Set the position of the first shape.
   let position = {
     x: SPACE_BETWEEN_SHAPES + SHAPE_SIZE,
-    y: SPACE_BETWEEN_SHAPES + SHAPE_SIZE + 75,
+    y: SPACE_BETWEEN_SHAPES + SHAPE_SIZE + 100,
   };
 
+  // Set the last value to 0.
   let lastValue = 0;
+
   for (let j = 0; j < currentProvince.selectedPropertyValue; j++) {
     if (displayedShapes.length > 0) {
       let lastShape = displayedShapes[displayedShapes.length - 1];
+
+      // Update the position of the shape.
       position = {
         x: lastShape.x + SPACE_BETWEEN_SHAPES + SHAPE_SIZE,
         y: lastShape.y,
       };
 
+      // Check if the shape is out of bounds so that it can be moved to the next line.
+      // Check if the value of the current shape is different from the last one so that it can be moved to the next line.
       if (
         position.x + SHAPE_SIZE > CANVAS_WIDTH - SPACE_BETWEEN_SHAPES ||
         lastValue != currentProvince[selectedProperty][j]
       ) {
+        // Skip 2 lines if the shape changes.
         let multiplier =
           lastValue != currentProvince[selectedProperty][j] ? 2 : 1;
+
+        // Update the position of the shape.
         position.x = SPACE_BETWEEN_SHAPES + SHAPE_SIZE;
         position.y += (SPACE_BETWEEN_SHAPES + SHAPE_SIZE) * multiplier;
       }
     }
+
+    // Create the shape and add it to the array.
     displayedShapes.push(
       new Shape(
         SHAPE_TYPES[currentProvince[selectedProperty][j]],
@@ -270,6 +309,7 @@ function createShapes() {
       )
     );
 
+    // Set the last value to the current value.
     lastValue = currentProvince[selectedProperty][j];
   }
 }
@@ -283,15 +323,18 @@ function reset() {
  * Check if the cursor is over a province.
  * @param {Province} province The province to check.
  * @returns {boolean} True if the cursor is over the province, false otherwise.
- * */
+ */
 function isCursorOverProvince(province) {
-  return dist(mouseX, mouseY, province.x, province.y) < province.circleSize / 2;
+  return (
+    dist(mouseX, mouseY, province.x, province.y) < Province.CIRCLE_SIZE / 2
+  );
 }
 
 function createProvinces() {
   // Calculate the size of each province.
   let provinceSize = {};
   for (let i = 0; i < table.getRowCount(); i++) {
+    // Get data from the selected columns.
     let province = table.getString(i, "PPROV");
     let gender = table.getString(i, "PRSPGNDR") == "1" ? 0 : 1;
     let lifeDiscontent = table.getString(i, "PLIS_05") == "1" ? 1 : 0;
@@ -299,6 +342,9 @@ function createProvinces() {
     let poorMentalHealth = table.getString(i, "GH_10") == "5" ? 1 : 0;
     let tookOnDebtsOrSoldAssets = int(table.getString(i, "PEHA_05B"));
 
+    // Set the properties of the province.
+    // If the province is not in the provinceSize object, add it.
+    // If the province is in the provinceSize object, update its properties.
     if (province in provinceSize) {
       provinceSize[province]["size"]++;
       if (notWalkingAlone == 1) {
@@ -349,7 +395,17 @@ function createProvinces() {
   }
 }
 
+/**
+ * Represents a province.
+ */
 class Province {
+  static CIRCLE_SIZE = 75;
+
+  /**
+   * Create a new province.
+   * @param {string} provinceCode The province code.
+   * @param {Object} properties The properties of the province.
+   */
   constructor(provinceCode, properties) {
     this.name = PROV_CODES[provinceCode].name;
     this.color = color(PROV_CODES[provinceCode].color);
@@ -362,7 +418,6 @@ class Province {
     this.tookOnDebtsOrSoldAssets = properties["tookOnDebtsOrSoldAssets"];
 
     // Set the position of the province.
-    this.circleSize = int(map(properties["size"], 0, 10000, 0, 200));
     this.x = 0;
     this.y = height / 2;
   }
@@ -370,11 +425,14 @@ class Province {
   draw() {
     // Draw a circle based on the province size and color.
     if (isCursorOverProvince(this)) {
-      // Write the province name.
+      // Write the province name and size.
       fill(255);
       noStroke();
       textSize(15);
-      text(this.name, this.x, this.y - this.circleSize / 2 - 20);
+      text(this.name, this.x, this.y - Province.CIRCLE_SIZE / 2 - 20);
+      text(this.size, this.x, this.y + Province.CIRCLE_SIZE / 2 + 20);
+      textSize(12);
+      text("answers", this.x, this.y + Province.CIRCLE_SIZE / 2 + 35);
 
       // Draw a stroke around the province.
       fill(this.color);
@@ -385,7 +443,7 @@ class Province {
       noStroke();
     }
 
-    circle(this.x, this.y, this.circleSize);
+    circle(this.x, this.y, Province.CIRCLE_SIZE);
   }
 
   get selectedPropertyValue() {
@@ -399,20 +457,23 @@ class Province {
 
 function updateProvincesPosition() {
   // Calculate the space between the provinces.
-  let totalSize = provinces.reduce((acc, cur) => acc + cur.circleSize, 0);
+  let totalSize = provinces.reduce((acc, cur) => acc + Province.CIRCLE_SIZE, 0);
   let spaceBetween = (CANVAS_WIDTH - totalSize) / (provinces.length + 1);
 
   // Update the provinces position.
   let x = spaceBetween;
   for (let i = 0; i < provinces.length; i++) {
-    provinces[i].x = x + provinces[i].circleSize / 2;
-    x += provinces[i].circleSize + spaceBetween;
+    provinces[i].x = x + Province.CIRCLE_SIZE / 2;
+    x += Province.CIRCLE_SIZE + spaceBetween;
   }
 }
 
+/**
+ * Represents a data point.
+ */
 class Shape {
   /**
-   * Create a new random shape.
+   * Create a new shape.
    * @param {string} type The type of the shape.
    * @param {number} x The x position of the shape.
    * @param {number} y The y position of the shape.
@@ -425,10 +486,15 @@ class Shape {
     this.size = SHAPE_SIZE;
   }
 
+  /**
+   * Draw the shape.
+   */
   draw() {
+    // Set visual properties.
     fill(20);
     noStroke();
 
+    // Draw the shape based on its type.
     switch (this.type) {
       case "square":
         square(this.x, this.y, this.size);
