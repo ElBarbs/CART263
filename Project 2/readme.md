@@ -1,10 +1,10 @@
 # Project 2 - Data Visualization
 
 ### Title
-Sad-tistics Canada.
+Sad-tistics Canada
 
 ### Dataset
-The Canadian Housing Survey of 2021.  
+The Canadian Housing Survey of 2021  
 https://www150.statcan.gc.ca/n1/pub/46-25-0001/2021001/2021.zip
 
 ### Screenshots
