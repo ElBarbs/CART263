@@ -79,8 +79,8 @@ let displayedShapes = [];
 /** The background color. */
 let backgroundColor;
 
-/** The logos used in the menu. */
-let logoSpacebar, logoLeftChevron, logoRightChevron;
+/** The left and right chevron logos. */
+let logoLeftChevron, logoRightChevron;
 
 function preload() {
   // Load the table.
@@ -93,7 +93,6 @@ function preload() {
   selectedProperty = "notWalkingAlone";
 
   // Load the logos.
-  logoSpacebar = loadImage("assets/images/keyboard-space.svg");
   logoLeftChevron = loadImage("assets/images/chevron-left.svg");
   logoRightChevron = loadImage("assets/images/chevron-right.svg");
 }
@@ -134,6 +133,12 @@ function draw() {
   background(backgroundColor);
 
   if (selectedProvince == undefined) {
+    // Write title.
+    fill(235);
+    noStroke();
+    textSize(30);
+    text("Sad-tistics Canada", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 4);
+
     // Draw the data.
     for (let i = 0; i < provinces.length; i++) {
       provinces[i].draw();
@@ -169,14 +174,12 @@ function draw() {
     image(logoLeftChevron, 300, CANVAS_HEIGHT - 70, 50, 50);
 
     // Write the property.
+    let propertyValue = provinces[selectedProvince].selectedPropertyValue;
+
     fill(20);
     noStroke();
-    textSize(25);
-    text(
-      `${provinces[selectedProvince].selectedPropertyValue}`,
-      CANVAS_WIDTH / 2,
-      CANVAS_HEIGHT - 75
-    );
+    textSize(30);
+    text(`${propertyValue}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT - 75);
     textSize(15);
     text(
       `${PROPERTIES[selectedProperty]}`,
@@ -282,7 +285,7 @@ function reset() {
  * @returns {boolean} True if the cursor is over the province, false otherwise.
  * */
 function isCursorOverProvince(province) {
-  return dist(mouseX, mouseY, province.x, province.y) < province.size / 2;
+  return dist(mouseX, mouseY, province.x, province.y) < province.circleSize / 2;
 }
 
 function createProvinces() {
@@ -352,13 +355,14 @@ class Province {
     this.color = color(PROV_CODES[provinceCode].color);
 
     // Set the properties of the province.
-    this.size = int(map(properties["size"], 0, 10000, 0, 200));
+    this.size = int(properties["size"]);
     this.lifeDiscontent = properties["lifeDiscontent"];
     this.notWalkingAlone = properties["notWalkingAlone"];
     this.poorMentalHealth = properties["poorMentalHealth"];
     this.tookOnDebtsOrSoldAssets = properties["tookOnDebtsOrSoldAssets"];
 
     // Set the position of the province.
+    this.circleSize = int(map(properties["size"], 0, 10000, 0, 200));
     this.x = 0;
     this.y = height / 2;
   }
@@ -370,7 +374,7 @@ class Province {
       fill(255);
       noStroke();
       textSize(15);
-      text(this.name, this.x, this.y - this.size / 2 - 20);
+      text(this.name, this.x, this.y - this.circleSize / 2 - 20);
 
       // Draw a stroke around the province.
       fill(this.color);
@@ -381,7 +385,7 @@ class Province {
       noStroke();
     }
 
-    circle(this.x, this.y, this.size);
+    circle(this.x, this.y, this.circleSize);
   }
 
   get selectedPropertyValue() {
@@ -395,14 +399,14 @@ class Province {
 
 function updateProvincesPosition() {
   // Calculate the space between the provinces.
-  let totalSize = provinces.reduce((acc, cur) => acc + cur.size, 0);
+  let totalSize = provinces.reduce((acc, cur) => acc + cur.circleSize, 0);
   let spaceBetween = (CANVAS_WIDTH - totalSize) / (provinces.length + 1);
 
   // Update the provinces position.
   let x = spaceBetween;
   for (let i = 0; i < provinces.length; i++) {
-    provinces[i].x = x + provinces[i].size / 2;
-    x += provinces[i].size + spaceBetween;
+    provinces[i].x = x + provinces[i].circleSize / 2;
+    x += provinces[i].circleSize + spaceBetween;
   }
 }
 
