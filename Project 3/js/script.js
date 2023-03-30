@@ -49,7 +49,7 @@ function setup() {
     COLORS[i] = color(COLORS[i]);
   }
 
-  // Initialize PoseNet.
+  // Initialize PoseNet with the specified options.
   poseNet = ml5.poseNet(
     video,
     {
@@ -99,21 +99,22 @@ function updatePlayerData() {
     let leftShoulder = pose.leftShoulder;
     let rightShoulder = pose.rightShoulder;
 
-    // Calculate the average position between the two shoulders.
-    let position = average(leftShoulder, rightShoulder);
+    // Calculate the position of the player.
+    let position = calculatePlayerPosition(leftShoulder, rightShoulder);
 
+    // Add a new player if there are less players than poses.
     if (players.length < poses.length) {
       let player = new Player(position.x, position.y);
       player.playSound();
       players.push(player);
-    } else if (
-      players.length > poses.length ||
-      players.length > COLORS.length
-    ) {
+    }
+    // Remove a player if there are more players than poses.
+    else if (players.length > poses.length || players.length > COLORS.length) {
       let player = players.pop();
       player.delete();
     }
 
+    // Update the position of the player if the confidence is high enough.
     if (leftShoulder.confidence > 0.2 && rightShoulder.confidence > 0.2) {
       for (let i = 0; i < players.length; i++) {
         if (players[i].id === i) {
@@ -126,16 +127,16 @@ function updatePlayerData() {
 }
 
 /**
- * Calculates the average position between two points.
- * @param {Object} p1 The first point.
- * @param {Object} p2 The second point.
- * @returns {Object} The average position.
+ * Calculates the position of the player.
+ * @param {Object} leftShoulder The left shoulder position.
+ * @param {Object} rightShoulder The right shoulder position.
+ * @returns {Object} The position of the player.
  */
-function average(p1, p2) {
-  let averageX = (p1.x + p2.x) / 2;
-  let averageY = (p1.y + p2.y) / 2;
+function calculatePlayerPosition(leftShoulder, rightShoulder) {
+  let newX = (leftShoulder.x + rightShoulder.x) / 2;
+  let newY = (leftShoulder.y + rightShoulder.y) / 2;
 
-  return { x: averageX, y: averageY };
+  return { x: newX, y: newY };
 }
 
 /**
@@ -145,14 +146,18 @@ class Player {
   static playerId = 0;
 
   constructor(x, y) {
+    // ID of the player.
     this.id = Player.playerId++;
 
+    // Position of the player.
     this.x = x;
     this.y = y;
 
+    // Size of the player.
     this.width = 20;
     this.height = 20;
 
+    // Sound of the player.
     this.synth = new p5.MonoSynth();
     this.sound = new p5.SoundLoop((timeFromNow) => {
       let noteIndex =
@@ -184,9 +189,12 @@ class Player {
    * Plays the sound.
    */
   playSound() {
+    // Start and sync the sound with the one that is already playing.
     if (this.id > 0) {
       this.sound.syncedStart(players[0].sound);
-    } else {
+    }
+    // Otherwise, just start the sound.
+    else {
       this.sound.start();
     }
   }
@@ -203,6 +211,7 @@ class Player {
    */
   delete() {
     this.stopSound();
+    this.synth.dispose();
     Player.playerId--;
   }
 }
