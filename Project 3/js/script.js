@@ -84,12 +84,20 @@ function draw() {
   players.forEach((player) => {
     player.draw();
   });
+
+  console.log(poses);
 }
 
 /**
  * Updates the player data.
  */
 function updatePlayerData() {
+  // Delete the players that are no longer detected.
+  while (players.length > poses.length) {
+    let player = players.pop();
+    player.delete();
+  }
+
   // Loop through all the poses detected.
   for (let i = 0; i < poses.length; i++) {
     // Get the pose data for one person.
@@ -99,28 +107,24 @@ function updatePlayerData() {
     let leftShoulder = pose.leftShoulder;
     let rightShoulder = pose.rightShoulder;
 
-    // Calculate the position of the player.
-    let position = calculatePlayerPosition(leftShoulder, rightShoulder);
-
-    // Add a new player if there are less players than poses.
-    if (players.length < poses.length) {
-      let player = new Player(position.x, position.y);
-      player.playSound();
-      players.push(player);
-    }
-    // Remove a player if there are more players than poses.
-    else if (players.length > poses.length || players.length > COLORS.length) {
-      let player = players.pop();
-      player.delete();
-    }
-
     // Update the position of the player if the confidence is high enough.
     if (leftShoulder.confidence > 0.2 && rightShoulder.confidence > 0.2) {
+      // Calculate the position of the player.
+      let position = calculatePlayerPosition(leftShoulder, rightShoulder);
+
+      // Check if the player already exists and update its position.
       for (let i = 0; i < players.length; i++) {
         if (players[i].id === i) {
           players[i].updatePosition(position);
           break;
         }
+      }
+
+      // If the player doesn't exist, create it.
+      if (players.length < poses.length) {
+        let player = new Player(position.x, position.y);
+        player.playSound();
+        players.push(player);
       }
     }
   }
