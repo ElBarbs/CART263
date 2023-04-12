@@ -32,46 +32,46 @@ const COLORS = [
 ];
 
 let video;
-let poseNet;
-let poses = [];
+let objDetector;
+let detections = [];
 let players = [];
+
+function preload() {
+  // Initialize ObjectDetector using the COCO-SSD model.
+  objDetector = ml5.objectDetector("cocossd");
+}
 
 function setup() {
   // Create the canvas.
   createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
 
   // Initialize the video.
-  video = createCapture(VIDEO);
-  video.size(width, height);
+  video = createCapture(VIDEO, () => {
+    // Start detecting objects when the video is ready.
+    objDetector.detect(video, objectDetected);
+  });
 
   // Convert the hex colors to p5 colors.
   for (let i = 0; i < COLORS.length; i++) {
     COLORS[i] = color(COLORS[i]);
   }
 
-  // Initialize PoseNet with the specified options.
-  poseNet = ml5.poseNet(
-    video,
-    {
-      architecture: "MobileNetV1",
-      detectionType: "multiple",
-      flipHorizontal: true,
-      inputResolution: 321,
-      scoreThreshold: 0.8,
-    },
-    modelReady
-  );
-
-  // Put the results from PoseNet into the poses array.
-  poseNet.on("pose", function (results) {
-    poses = results;
-  });
-
   // Hide the video element.
   video.hide();
 }
 
-function modelReady() {}
+function objectDetected(err, results) {
+  // If there is an error, log it.
+  if (err) {
+    console.error(err);
+  }
+
+  // Store the detections.
+  detections = results;
+
+  // Detect again.
+  objDetector.detect(video, objectDetected);
+}
 
 function draw() {
   // Reset the background.
@@ -84,8 +84,6 @@ function draw() {
   players.forEach((player) => {
     player.draw();
   });
-
-  console.log(poses);
 }
 
 /**
@@ -93,54 +91,43 @@ function draw() {
  */
 function updatePlayerData() {
   // Delete the players that are no longer detected.
-  while (players.length > poses.length) {
+  while (players.length > detections.length) {
     let player = players.pop();
     player.delete();
   }
 
-  // Loop through all the poses detected.
-  for (let i = 0; i < poses.length; i++) {
-    // Get the pose data for one person.
-    let pose = poses[i].pose;
+  detections.forEach((obj) => {
+    let position = calculateObjectCenter(obj);
 
-    // Get the left and right shoulder positions.
-    let leftShoulder = pose.leftShoulder;
-    let rightShoulder = pose.rightShoulder;
-
-    // Update the position of the player if the confidence is high enough.
-    if (leftShoulder.confidence > 0.2 && rightShoulder.confidence > 0.2) {
-      // Calculate the position of the player.
-      let position = calculatePlayerPosition(leftShoulder, rightShoulder);
-
-      // Check if the player already exists and update its position.
-      for (let i = 0; i < players.length; i++) {
-        if (players[i].id === i) {
-          players[i].updatePosition(position);
-          break;
-        }
-      }
-
-      // If the player doesn't exist, create it.
-      if (players.length < poses.length) {
-        let player = new Player(position.x, position.y);
-        player.playSound();
-        players.push(player);
+    // Check if the player already exists and update its position.
+    for (let i = 0; i < players.length; i++) {
+      if (players[i].id === i) {
+        players[i].updatePosition(position);
+        break;
       }
     }
-  }
+
+    // If the player doesn't exist, create it.
+    if (players.length < detections.length) {
+      let player = new Player(position.x, position.y);
+      player.playSound();
+      players.push(player);
+    }
+  });
 }
 
-/**
- * Calculates the position of the player.
- * @param {Object} leftShoulder The left shoulder position.
- * @param {Object} rightShoulder The right shoulder position.
- * @returns {Object} The position of the player.
- */
-function calculatePlayerPosition(leftShoulder, rightShoulder) {
-  let newX = (leftShoulder.x + rightShoulder.x) / 2;
-  let newY = (leftShoulder.y + rightShoulder.y) / 2;
+function calculateObjectCenter(obj) {
+  return remap({
+    x: obj.x + obj.width / 2,
+    y: obj.y + obj.height / 2,
+  });
+}
 
-  return { x: newX, y: newY };
+function remap(obj) {
+  return {
+    x: abs(CANVAS_WIDTH - map(obj.x, 0, video.width, 0, CANVAS_WIDTH)),
+    y: map(obj.y, 0, video.height, 0, CANVAS_HEIGHT),
+  };
 }
 
 /**
