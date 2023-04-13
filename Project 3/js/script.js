@@ -26,7 +26,7 @@ const OBJECTS = {
   },
   bottle: {
     color: "#F15B4C",
-    notePattern: [62, 69, 62, 66],
+    notePattern: [66, 62, 69],
   },
   scissors: {
     color: "#FAC41B",
@@ -67,6 +67,9 @@ function setup() {
 
   // Hide the video element.
   video.hide();
+
+  // Set the stroke weight.
+  strokeWeight(0.1);
 }
 
 function objectDetected(err, results) {
@@ -107,7 +110,8 @@ function draw() {
   translate(width / 2, height / 2);
   beginShape();
   for (var i = 0; i < 360; i++) {
-    var r = map(volhistory[i], 0, 1, 1, 200);
+    volhistory[i] = abs(1 - volhistory[i]);
+    var r = map(volhistory[i], 0, 1, 1, 100);
     var x = r * cos(i);
     var y = r * sin(i);
     vertex(x, y);
@@ -115,7 +119,7 @@ function draw() {
   endShape();
 
   if (volhistory.length > 360) {
-    volhistory.splice(0, 1);
+    volhistory.shift();
   }
 }
 
@@ -151,8 +155,7 @@ function remap(obj) {
  * A class that represents a player.
  */
 class Player {
-  static width = 20;
-  static height = 20;
+  static size = 10;
 
   constructor(id, hexColor, notePattern) {
     // ID of the player.
@@ -195,7 +198,7 @@ class Player {
     } else {
       fill(this.color);
       noStroke();
-      rect(this.x, this.y, Player.width, Player.height);
+      circle(this.x, this.y, Player.size);
 
       if (!this.isActive) {
         this.playSound();
@@ -217,7 +220,10 @@ class Player {
     this.x = lerp(this.x, newPosition.x, 0.1);
     this.y = lerp(this.y, newPosition.y, 0.1);
 
-    this.synth.amp(random());
+    let diffX = map(abs(this.x - newPosition.x), 0, 10, 0, 1);
+    let diffY = map(abs(this.y - newPosition.y), 0, 10, 0, 1);
+
+    this.synth.amp(random(0 + diffX, 1 - diffY));
   }
 
   /**
