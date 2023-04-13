@@ -104,6 +104,11 @@ function draw() {
   });
 
   volhistory.push(vol);
+
+  drawVisual();
+}
+
+function drawVisual() {
   stroke(255);
   noFill();
 
