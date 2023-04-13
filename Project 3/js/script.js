@@ -41,6 +41,14 @@ const OBJECTS = {
     color: "#68BAB3",
     notePattern: [58, 56, 54],
   },
+  fork: {
+    color: "#3D8929",
+    notePattern: [58, 62, 60],
+  },
+  knife: {
+    color: "#F69211",
+    notePattern: [58, 64],
+  },
 };
 
 /** The webcam feed. */
