@@ -1,6 +1,6 @@
 /**
  * Project 3: Playful Interaction.
- * Louis Barbier and Jaden ___.
+ * Louis Barbier and Jaden Thompson.
  */
 
 "use strict";
@@ -28,10 +28,11 @@ const OBJECTS = {
     color: "#F15B4C",
     notePattern: [62, 69, 62, 66],
   },
+  scissors: {
+    color: "#FAC41B",
+    notePattern: [62, 64],
+  },
 };
-
-/** Color palette for the players. */
-const COLORS = ["#FAC41B", "#FFD45B"];
 
 /** The webcam feed. */
 let video;
@@ -40,6 +41,8 @@ let objDetector;
 let detections = [];
 
 let players = [];
+
+let volhistory = [];
 
 function preload() {
   // Initialize ObjectDetector using the COCO-SSD model.
@@ -86,10 +89,34 @@ function draw() {
   // Update the player data.
   updatePlayerData();
 
+  let vol = 0;
+
   // Draw each player.
   players.forEach((player) => {
     player.draw();
+
+    if (player.isActive) {
+      vol += player.synth.amp();
+    }
   });
+
+  volhistory.push(vol);
+  stroke(255);
+  noFill();
+
+  translate(width / 2, height / 2);
+  beginShape();
+  for (var i = 0; i < 360; i++) {
+    var r = map(volhistory[i], 0, 1, 1, 200);
+    var x = r * cos(i);
+    var y = r * sin(i);
+    vertex(x, y);
+  }
+  endShape();
+
+  if (volhistory.length > 360) {
+    volhistory.splice(0, 1);
+  }
 }
 
 /**
@@ -99,16 +126,9 @@ function updatePlayerData() {
   for (let i = 0; i < players.length; i++) {
     let detectionIndex = detections.findIndex((d) => d.label === players[i].id);
     if (detectionIndex > -1) {
-      if (!players[i].isActive) {
-        players[i].playSound();
-        players[i].isActive = true;
-      }
-
+      players[i].increaseLifespan();
       let position = calculateObjectCenter(detections[detectionIndex]);
       players[i].updatePosition(position);
-    } else if (players[i].isActive) {
-      players[i].stopSound();
-      players[i].isActive = false;
     }
   }
 }
@@ -151,8 +171,11 @@ class Player {
     // Whether the player is active or not.
     this.isActive = false;
 
+    this.lifespan = 0;
+
     // Sound of the player.
     this.synth = new p5.MonoSynth();
+
     this.sound = new p5.SoundLoop((timeFromNow) => {
       let noteIndex = (this.sound.iterations - 1) % this.notePattern.length;
       let note = midiToFreq(this.notePattern[noteIndex]);
@@ -164,11 +187,26 @@ class Player {
    * Draws the player.
    */
   draw() {
-    if (this.isActive) {
+    this.lifespan--;
+
+    if (this.lifespan <= 0) {
+      this.stopSound();
+      this.isActive = false;
+    } else {
       fill(this.color);
       noStroke();
       rect(this.x, this.y, Player.width, Player.height);
+
+      if (!this.isActive) {
+        this.playSound();
+        this.isActive = true;
+      }
     }
+  }
+
+  increaseLifespan() {
+    this.lifespan += 15;
+    this.lifespan = constrain(this.lifespan, 0, 60);
   }
 
   /**
@@ -178,6 +216,8 @@ class Player {
   updatePosition(newPosition) {
     this.x = lerp(this.x, newPosition.x, 0.1);
     this.y = lerp(this.y, newPosition.y, 0.1);
+
+    this.synth.amp(random());
   }
 
   /**
