@@ -13,7 +13,7 @@ const CANVAS_HEIGHT = 600;
 
 /** The configuration for each object. */
 const OBJECTS = {
-  backpack: {
+  "potted plant": {
     color: "#537C78",
     notePattern: [60, 64],
   },
@@ -31,7 +31,15 @@ const OBJECTS = {
   },
   "cell phone": {
     color: "#FAC41B",
-    notePattern: [76, 83, 76],
+    notePattern: [56, 63, 56],
+  },
+  apple: {
+    color: "#8753E5",
+    notePattern: [52, 50],
+  },
+  banana: {
+    color: "#68BAB3",
+    notePattern: [58, 56, 54],
   },
 };
 
@@ -218,7 +226,7 @@ class Player {
       let noteIndex = (this.sound.iterations - 1) % this.notePattern.length;
       let note = midiToFreq(this.notePattern[noteIndex]);
       this.synth.play(note, 0.5, timeFromNow);
-    }, 0.75);
+    }, random([0.35, 0.70, 1.4]));
   }
 
   /**
