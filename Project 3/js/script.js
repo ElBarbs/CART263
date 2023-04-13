@@ -13,13 +13,13 @@ const CANVAS_HEIGHT = 600;
 
 /** The configuration for each object. */
 const OBJECTS = {
-  "wine glass": {
+  backpack: {
     color: "#537C78",
-    notePattern: [60, 64, 67, 69, 62],
+    notePattern: [60, 64],
   },
   book: {
     color: "#7BA591",
-    notePattern: [76, 83, 76, 80, 83, 76],
+    notePattern: [80, 83, 76],
   },
   vase: {
     color: "#CC222B",
@@ -29,9 +29,9 @@ const OBJECTS = {
     color: "#F15B4C",
     notePattern: [62, 64],
   },
-  scissors: {
+  "cell phone": {
     color: "#FAC41B",
-    notePattern: [62, 64],
+    notePattern: [76, 83, 76],
   },
 };
 
@@ -190,6 +190,7 @@ function remap(posObj) {
  */
 class Player {
   static size = 2;
+  static lifespanIncrement = 15;
 
   constructor(id, hexColor, notePattern) {
     // ID of the player.
@@ -247,7 +248,7 @@ class Player {
    * Increases the lifespan of the player.
    */
   increaseLifespan() {
-    this.lifespan += 15;
+    this.lifespan += Player.lifespanIncrement;
     this.lifespan = constrain(this.lifespan, 0, 60);
   }
 
