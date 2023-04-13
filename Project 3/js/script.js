@@ -11,29 +11,34 @@ const CANVAS_WIDTH = 1200;
 /** Height of the canvas. */
 const CANVAS_HEIGHT = 600;
 
-/** MIDI patterns for the players. */
-const NOTE_PATTERNS = [
-  [60, 64, 67, 69, 62],
-  [49, 54, 56],
-  [62, 69, 62, 66],
-  [76, 83, 76, 80, 83, 76],
-  [48, 52, 55, 48, 52],
-  [62, 69, 62, 66],
-];
+const OBJECTS = {
+  "wine glass": {
+    color: "#537C78",
+    notePattern: [60, 64, 67, 69, 62],
+  },
+  book: {
+    color: "#7BA591",
+    notePattern: [76, 83, 76, 80, 83, 76],
+  },
+  vase: {
+    color: "#CC222B",
+    notePattern: [62, 69, 62, 66],
+  },
+  bottle: {
+    color: "#F15B4C",
+    notePattern: [62, 69, 62, 66],
+  },
+};
 
 /** Color palette for the players. */
-const COLORS = [
-  "#537C78",
-  "#7BA591",
-  "#CC222B",
-  "#F15B4C",
-  "#FAC41B",
-  "#FFD45B",
-];
+const COLORS = ["#FAC41B", "#FFD45B"];
 
+/** The webcam feed. */
 let video;
+
 let objDetector;
 let detections = [];
+
 let players = [];
 
 function preload() {
@@ -51,9 +56,10 @@ function setup() {
     objDetector.detect(video, objectDetected);
   });
 
-  // Convert the hex colors to p5 colors.
-  for (let i = 0; i < COLORS.length; i++) {
-    COLORS[i] = color(COLORS[i]);
+  // Create the players.
+  for (let [key, value] of Object.entries(OBJECTS)) {
+    let player = new Player(key, value.color, value.notePattern);
+    players.push(player);
   }
 
   // Hide the video element.
@@ -90,30 +96,21 @@ function draw() {
  * Updates the player data.
  */
 function updatePlayerData() {
-  // Delete the players that are no longer detected.
-  while (players.length > detections.length) {
-    let player = players.pop();
-    player.delete();
-  }
-
-  detections.forEach((obj) => {
-    let position = calculateObjectCenter(obj);
-
-    // Check if the player already exists and update its position.
-    for (let i = 0; i < players.length; i++) {
-      if (players[i].id === i) {
-        players[i].updatePosition(position);
-        break;
+  for (let i = 0; i < players.length; i++) {
+    let detectionIndex = detections.findIndex((d) => d.label === players[i].id);
+    if (detectionIndex > -1) {
+      if (!players[i].isActive) {
+        players[i].playSound();
+        players[i].isActive = true;
       }
-    }
 
-    // If the player doesn't exist, create it.
-    if (players.length < detections.length) {
-      let player = new Player(position.x, position.y);
-      player.playSound();
-      players.push(player);
+      let position = calculateObjectCenter(detections[detectionIndex]);
+      players[i].updatePosition(position);
+    } else if (players[i].isActive) {
+      players[i].stopSound();
+      players[i].isActive = false;
     }
-  });
+  }
 }
 
 function calculateObjectCenter(obj) {
@@ -134,26 +131,31 @@ function remap(obj) {
  * A class that represents a player.
  */
 class Player {
-  static playerId = 0;
+  static width = 20;
+  static height = 20;
 
-  constructor(x, y) {
+  constructor(id, hexColor, notePattern) {
     // ID of the player.
-    this.id = Player.playerId++;
+    this.id = id;
+
+    // Color of the player.
+    this.color = color(hexColor);
+
+    // Note pattern of the player.
+    this.notePattern = notePattern;
 
     // Position of the player.
-    this.x = x;
-    this.y = y;
+    this.x = 0;
+    this.y = 0;
 
-    // Size of the player.
-    this.width = 20;
-    this.height = 20;
+    // Whether the player is active or not.
+    this.isActive = false;
 
     // Sound of the player.
     this.synth = new p5.MonoSynth();
     this.sound = new p5.SoundLoop((timeFromNow) => {
-      let noteIndex =
-        (this.sound.iterations - 1) % NOTE_PATTERNS[this.id].length;
-      let note = midiToFreq(NOTE_PATTERNS[this.id][noteIndex]);
+      let noteIndex = (this.sound.iterations - 1) % this.notePattern.length;
+      let note = midiToFreq(this.notePattern[noteIndex]);
       this.synth.play(note, 0.5, timeFromNow);
     }, 0.2);
   }
@@ -162,9 +164,11 @@ class Player {
    * Draws the player.
    */
   draw() {
-    fill(COLORS[this.id]);
-    noStroke();
-    rect(this.x, this.y, this.width, this.height);
+    if (this.isActive) {
+      fill(this.color);
+      noStroke();
+      rect(this.x, this.y, Player.width, Player.height);
+    }
   }
 
   /**
@@ -180,14 +184,17 @@ class Player {
    * Plays the sound.
    */
   playSound() {
-    // Start and sync the sound with the one that is already playing.
-    if (this.id > 0) {
-      this.sound.syncedStart(players[0].sound);
+    // Check if there is a sound already playing.
+    // If so, sync the player's sound to it.
+    for (let i = 0; i < players.length; i++) {
+      if (players[i].isActive === true) {
+        this.sound.syncedStart(players[i].sound);
+        return;
+      }
     }
-    // Otherwise, just start the sound.
-    else {
-      this.sound.start();
-    }
+
+    // Otherwise, start the sound like usual.
+    this.sound.start();
   }
 
   /**
@@ -195,14 +202,5 @@ class Player {
    */
   stopSound() {
     this.sound.stop();
-  }
-
-  /**
-   * Deletes the player.
-   */
-  delete() {
-    this.stopSound();
-    this.synth.dispose();
-    Player.playerId--;
   }
 }
