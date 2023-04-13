@@ -5,12 +5,13 @@
 
 "use strict";
 
-/** Width of the canvas. */
+/** The width of the canvas. */
 const CANVAS_WIDTH = 1200;
 
-/** Height of the canvas. */
+/** The height of the canvas. */
 const CANVAS_HEIGHT = 600;
 
+/** The configuration for each object. */
 const OBJECTS = {
   "wine glass": {
     color: "#537C78",
@@ -22,11 +23,11 @@ const OBJECTS = {
   },
   vase: {
     color: "#CC222B",
-    notePattern: [62, 69, 62, 66],
+    notePattern: [67, 69, 62],
   },
   bottle: {
     color: "#F15B4C",
-    notePattern: [66, 62, 69],
+    notePattern: [62, 64],
   },
   scissors: {
     color: "#FAC41B",
@@ -37,12 +38,17 @@ const OBJECTS = {
 /** The webcam feed. */
 let video;
 
+/** The object detection model. */
 let objDetector;
+
+/** The detected objects. */
 let detections = [];
 
+/** The players. */
 let players = [];
 
-let volhistory = [];
+/** The volume history. */
+let freqHistory = [];
 
 function preload() {
   // Initialize ObjectDetector using the COCO-SSD model.
@@ -86,45 +92,59 @@ function objectDetected(err, results) {
 }
 
 function draw() {
+  // Reset the volume.
+  let freq = 0;
+
   // Reset the background.
   background(20, 20, 20);
 
   // Update the player data.
   updatePlayerData();
 
-  let vol = 0;
-
-  // Draw each player.
+  // For each player...
   players.forEach((player) => {
+    // Draw the player.
     player.draw();
 
+    // Calculate the volume of the sound of active players.
     if (player.isActive) {
-      vol += player.synth.amp();
+      freq += player.synth.oscillator.freqNode.value;
     }
   });
 
-  volhistory.push(vol);
+  // Add the calculated frequency to the frequency history.
+  freqHistory.push(freq);
 
+  // Draw the visual.
   drawVisual();
 }
 
+function getActivePlayers() {
+  return players.filter((p) => p.isActive);
+}
 function drawVisual() {
   stroke(255);
   noFill();
 
   translate(width / 2, height / 2);
   beginShape();
-  for (var i = 0; i < 360; i++) {
-    volhistory[i] = abs(1 - volhistory[i]);
-    var r = map(volhistory[i], 0, 1, 1, 100);
+  for (var i = 0; i < 90; i++) {
+    freqHistory[i] = abs(1 - freqHistory[i]);
+    var r = map(
+      freqHistory[i],
+      -1000,
+      1000,
+      1,
+      100 + random(0, getActivePlayers().length * 50)
+    );
     var x = r * cos(i);
     var y = r * sin(i);
     vertex(x, y);
   }
   endShape();
 
-  if (volhistory.length > 360) {
-    volhistory.shift();
+  if (freqHistory.length > 90) {
+    freqHistory.shift();
   }
 }
 
@@ -133,6 +153,7 @@ function drawVisual() {
  */
 function updatePlayerData() {
   for (let i = 0; i < players.length; i++) {
+    // Check if the object is detected.
     let detectionIndex = detections.findIndex((d) => d.label === players[i].id);
     if (detectionIndex > -1) {
       players[i].increaseLifespan();
@@ -142,6 +163,10 @@ function updatePlayerData() {
   }
 }
 
+/**
+ * Calculates the center of an object.
+ * @param {Object} obj The object.
+ */
 function calculateObjectCenter(obj) {
   return remap({
     x: obj.x + obj.width / 2,
@@ -149,10 +174,14 @@ function calculateObjectCenter(obj) {
   });
 }
 
-function remap(obj) {
+/**
+ * Maps a value from one range to another.
+ * @param {Object} posObj An object with x and y properties.
+ */
+function remap(posObj) {
   return {
-    x: abs(CANVAS_WIDTH - map(obj.x, 0, video.width, 0, CANVAS_WIDTH)),
-    y: map(obj.y, 0, video.height, 0, CANVAS_HEIGHT),
+    x: abs(CANVAS_WIDTH - map(posObj.x, 0, video.width, 0, CANVAS_WIDTH)),
+    y: map(posObj.y, 0, video.height, 0, CANVAS_HEIGHT),
   };
 }
 
@@ -160,7 +189,7 @@ function remap(obj) {
  * A class that represents a player.
  */
 class Player {
-  static size = 10;
+  static size = 2;
 
   constructor(id, hexColor, notePattern) {
     // ID of the player.
@@ -188,7 +217,7 @@ class Player {
       let noteIndex = (this.sound.iterations - 1) % this.notePattern.length;
       let note = midiToFreq(this.notePattern[noteIndex]);
       this.synth.play(note, 0.5, timeFromNow);
-    }, 0.2);
+    }, 0.75);
   }
 
   /**
@@ -201,10 +230,12 @@ class Player {
       this.stopSound();
       this.isActive = false;
     } else {
+      // Draw the player.
       fill(this.color);
       noStroke();
       circle(this.x, this.y, Player.size);
 
+      // Set the player active if it is not already.
       if (!this.isActive) {
         this.playSound();
         this.isActive = true;
@@ -212,6 +243,9 @@ class Player {
     }
   }
 
+  /**
+   * Increases the lifespan of the player.
+   */
   increaseLifespan() {
     this.lifespan += 15;
     this.lifespan = constrain(this.lifespan, 0, 60);
@@ -222,12 +256,15 @@ class Player {
    * @param {Object} newPosition The new position of the player.
    */
   updatePosition(newPosition) {
+    // Update the position.
     this.x = lerp(this.x, newPosition.x, 0.1);
     this.y = lerp(this.y, newPosition.y, 0.1);
 
+    // Calculate the difference between the old and new position.
     let diffX = map(abs(this.x - newPosition.x), 0, 10, 0, 1);
     let diffY = map(abs(this.y - newPosition.y), 0, 10, 0, 1);
 
+    // Change the range based on the difference.
     this.synth.amp(random(0 + diffX, 1 - diffY));
   }
 
@@ -235,13 +272,10 @@ class Player {
    * Plays the sound.
    */
   playSound() {
-    // Check if there is a sound already playing.
-    // If so, sync the player's sound to it.
-    for (let i = 0; i < players.length; i++) {
-      if (players[i].isActive === true) {
-        this.sound.syncedStart(players[i].sound);
-        return;
-      }
+    let activePlayers = getActivePlayers();
+    if (activePlayers.length > 1) {
+      this.sound.syncedStart(activePlayers[0].sound);
+      return;
     }
 
     // Otherwise, start the sound like usual.
