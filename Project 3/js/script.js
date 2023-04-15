@@ -66,6 +66,9 @@ let players = [];
 /** The volume history. */
 let freqHistory = [];
 
+/** The color history. */
+let colorHistory = [];
+
 function preload() {
   // Initialize ObjectDetector using the COCO-SSD model.
   objDetector = ml5.objectDetector("cocossd");
@@ -110,9 +113,12 @@ function objectDetected(err, results) {
 function draw() {
   // Reset the volume.
   let freq = 0;
+  
+  // Reset the color.
+  let color = [(0, 0, 0)];
 
   // Reset the background.
-  background(20, 20, 20);
+  background(255);
 
   // Update the player data.
   updatePlayerData();
@@ -122,14 +128,19 @@ function draw() {
     // Draw the player.
     player.draw();
 
-    // Calculate the volume of the sound of active players.
+    // Calculate the volume of the sound of active players and additive color.
     if (player.isActive) {
       freq += player.synth.oscillator.freqNode.value;
+      color += player.color;
+      color = color.replace(/[^\d,]/g, '').split(',');
     }
   });
 
   // Add the calculated frequency to the frequency history.
   freqHistory.push(freq);
+
+  // Add the calculated color to the color history.
+  colorHistory.push(color);
 
   // Draw the visual.
   drawVisual();
@@ -138,9 +149,20 @@ function draw() {
 function getActivePlayers() {
   return players.filter((p) => p.isActive);
 }
+
 function drawVisual() {
-  stroke(255);
+  if (colorHistory.length == 1) {
+    stroke(colorHistory[0][0], colorHistory[0][1], colorHistory[0][2]);
+  } 
+
+  else if (colorHistory.length > 1) {
+    for (let i = 1; i < colorHistory.length; i++) {
+      stroke(colorHistory[i][0], colorHistory[i][1], colorHistory[i][2]);
+    }
+  } 
+
   noFill();
+  strokeWeight(1.5);
 
   translate(width / 2, height / 2);
   beginShape();
@@ -234,7 +256,7 @@ class Player {
       let noteIndex = (this.sound.iterations - 1) % this.notePattern.length;
       let note = midiToFreq(this.notePattern[noteIndex]);
       this.synth.play(note, 0.5, timeFromNow);
-    }, random([0.35, 0.70, 1.4]));
+    }, random([0.35, 0.7, 1.4]));
   }
 
   /**
