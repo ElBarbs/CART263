@@ -115,7 +115,7 @@ function draw() {
   let freq = 0;
   
   // Reset the color.
-  let color = [];
+  let color = [(0, 0, 0)];
 
   // Reset the background.
   background(255);
@@ -133,8 +133,6 @@ function draw() {
       freq += player.synth.oscillator.freqNode.value;
       color += player.color;
       color = color.replace(/[^\d,]/g, '').split(',');
-
-      console.log(color);
     }
   });
 
@@ -153,13 +151,16 @@ function getActivePlayers() {
 }
 
 function drawVisual() {
-  if (colorHistory.length > 0) {
-    for (let i = 0; i < colorHistory.length; i++) {
+  if (colorHistory.length == 1) {
+    stroke(colorHistory[0][0], colorHistory[0][1], colorHistory[0][2]);
+  } 
+
+  else if (colorHistory.length > 1) {
+    for (let i = 1; i < colorHistory.length; i++) {
       stroke(colorHistory[i][0], colorHistory[i][1], colorHistory[i][2]);
     }
-  } else {
-    stroke(255);
-  }
+  } 
+
   noFill();
   strokeWeight(1.5);
 
