@@ -66,6 +66,9 @@ let players = [];
 /** The volume history. */
 let freqHistory = [];
 
+/** The color history.  */
+let strokeColorHistory = [];
+
 function preload() {
   // Initialize ObjectDetector using the COCO-SSD model.
   objDetector = ml5.objectDetector("cocossd");
@@ -110,6 +113,7 @@ function objectDetected(err, results) {
 function draw() {
   // Reset the volume.
   let freq = 0;
+  let strokeColor = 255;
 
   // Reset the background.
   background(20, 20, 20);
@@ -122,14 +126,18 @@ function draw() {
     // Draw the player.
     player.draw();
 
-    // Calculate the volume of the sound of active players.
+    // Calculate the volume of the sound of active players and additive color.
     if (player.isActive) {
       freq += player.synth.oscillator.freqNode.value;
+      strokeColor += player.color.value;
     }
   });
 
   // Add the calculated frequency to the frequency history.
   freqHistory.push(freq);
+
+  // Add the calculated color to the color history.
+  strokeColorHistory.push(strokeColor);
 
   // Draw the visual.
   drawVisual();
@@ -138,8 +146,14 @@ function draw() {
 function getActivePlayers() {
   return players.filter((p) => p.isActive);
 }
+
 function drawVisual() {
-  stroke(255);
+  for (var i = 0; i < 90; i++) {
+    if (freqHistory[i] > 0) {
+      stroke(strokeColorHistory[i]);
+      strokeWeight(map(freqHistory[i], 0, 1000, 0.1, 0.5));
+    }
+  }
   noFill();
 
   translate(width / 2, height / 2);
@@ -161,6 +175,10 @@ function drawVisual() {
 
   if (freqHistory.length > 90) {
     freqHistory.shift();
+  }
+
+  if (strokeColorHistory.length > 90) {
+    strokeColorHistory.shift();
   }
 }
 
@@ -234,7 +252,7 @@ class Player {
       let noteIndex = (this.sound.iterations - 1) % this.notePattern.length;
       let note = midiToFreq(this.notePattern[noteIndex]);
       this.synth.play(note, 0.5, timeFromNow);
-    }, random([0.35, 0.70, 1.4]));
+    }, random([0.35, 0.7, 1.4]));
   }
 
   /**
