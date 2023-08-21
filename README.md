@@ -11,6 +11,9 @@ A re-creation of the game Pong, where 2 players bounce a ball back and forth hor
 A simulation of a thunderstorm using OOP and particles.
 
 ### <ins> Project 2: Data Visualization </ins>
-#### Sad-tistics Canada - Using data from Canadian Housing Survey of 2021
+#### Sad-tistics Canada - Using data from the Canadian Housing Survey of 2021
 
 A sad data visualizer.
+
+### <ins> Project 3: Playful Interaction </ins>
+#### The Vibrations of Objects
