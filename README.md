@@ -1,5 +1,5 @@
 ## CART 263: Creative Computation 2 – Winter 2023
-This repository contains all the projects created for the course.
+This repository contains all the exercises and projects created for the course.
 
 ### <ins> Exercise 1: Getting Back into Code </ins>
 
